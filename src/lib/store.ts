@@ -1,5 +1,5 @@
 import { redis } from "./redis";
-import { Day, MEALS, MealName, normalizeDay, winnerOf } from "./types";
+import { Day, MEALS, MealName, decidedLabel, normalizeDay } from "./types";
 
 /**
  * The whole day — all three meals — lives in a single JSON value.
@@ -55,10 +55,10 @@ export async function finalizeExpiredDay(date: string): Promise<void> {
     for (const meal of MEALS) {
       const m = day[meal];
       if (m.locked) continue;
-      const leader = winnerOf(m);
-      if (leader) {
-        m.locked = leader.dish;
-        settled.push({ meal, dish: leader.dish });
+      const label = decidedLabel(m);
+      if (label) {
+        m.locked = label;
+        settled.push({ meal, dish: label });
       }
     }
   });

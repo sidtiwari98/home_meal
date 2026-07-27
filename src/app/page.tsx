@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FAMILY, Person } from "@/lib/family";
 import { humanDate, istDateKey, istHour } from "@/lib/date";
-import { Day, MEALS, MealName, Suggestion, emptyDay, normalizeDay, winnerOf } from "@/lib/types";
+import { Day, MEALS, MealName, Suggestion, decidedLabel, emptyDay, normalizeDay, winnersOf } from "@/lib/types";
 
 const STORAGE_KEY = "kitchen.who";
 const POLL_MS = 15_000;
@@ -153,8 +153,8 @@ export default function Page() {
     return () => observer.disconnect();
   }, [who]);
 
-  const leader = useMemo(() => winnerOf(meal), [meal]);
-  const decided = meal.locked ?? leader?.dish ?? null;
+  const winners = useMemo(() => winnersOf(meal), [meal]);
+  const decided = decidedLabel(meal);
   const headcount = FAMILY.length - meal.skipping.length;
 
   const ordered = useMemo(
@@ -323,7 +323,7 @@ export default function Page() {
               key={item.id}
               item={item}
               me={who}
-              leading={!meal.locked && item.id === leader?.id}
+              leading={!meal.locked && winners.some((w) => w.id === item.id)}
               onVote={() =>
                 void send({ type: "vote", id: item.id }, (c) => {
                   const target = c[view.meal].suggestions.find((s) => s.id === item.id);

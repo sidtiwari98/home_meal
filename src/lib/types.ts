@@ -51,12 +51,21 @@ export function normalizeDay(raw: unknown): Day {
 }
 
 /**
- * Most votes wins. Ties go to whoever suggested it first — the earlier idea
- * has usually already been half-agreed to out loud.
+ * Most votes wins. If several dishes are tied for the most votes, they're
+ * all winning at once — earliest suggested first.
  */
-export function winnerOf(meal: Meal): Suggestion | null {
-  if (!meal.suggestions.length) return null;
-  return [...meal.suggestions].sort(
+export function winnersOf(meal: Meal): Suggestion[] {
+  if (!meal.suggestions.length) return [];
+  const sorted = [...meal.suggestions].sort(
     (a, b) => b.votes.length - a.votes.length || a.at - b.at,
-  )[0];
+  );
+  const topVotes = sorted[0].votes.length;
+  return sorted.filter((s) => s.votes.length === topVotes);
+}
+
+/** What the meal has actually settled on: the lock, or a comma-joined tie. */
+export function decidedLabel(meal: Meal): string | null {
+  if (meal.locked) return meal.locked;
+  const winners = winnersOf(meal);
+  return winners.length ? winners.map((w) => w.dish).join(", ") : null;
 }
