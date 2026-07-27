@@ -55,6 +55,7 @@ export default function Page() {
   });
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pendingSkip, setPendingSkip] = useState<string | null>(null);
   const lastTouch = useRef(Date.now());
   const composerRef = useRef<HTMLDivElement>(null);
 
@@ -209,6 +210,14 @@ export default function Page() {
         votes: [who],
         at: Date.now(),
       });
+    });
+  }
+
+  function commitSkip(name: string, reason: SkipReason = "Skipping") {
+    setPendingSkip(null);
+    void send({ type: "skip", target: name, reason }, (c) => {
+      const list = c[view.meal].skipping;
+      if (!list.some((s) => s.name === name)) list.push({ name, reason });
     });
   }
 
@@ -374,51 +383,39 @@ export default function Page() {
                 key={name}
                 className="person"
                 data-out={out}
-                onClick={() =>
-                  void send({ type: "skip", target: name }, (c) => {
-                    const list = c[view.meal].skipping;
-                    const at = list.findIndex((s) => s.name === name);
-                    if (at === -1) list.push({ name, reason: "Skipping" });
-                    else list.splice(at, 1);
-                  })
-                }
+                onClick={() => {
+                  if (out) {
+                    void send({ type: "skip", target: name, reason: "Skipping" }, (c) => {
+                      c[view.meal].skipping = c[view.meal].skipping.filter((s) => s.name !== name);
+                    });
+                  } else {
+                    setPendingSkip(name);
+                  }
+                }}
               >
                 {name}
               </button>
             );
           })}
         </div>
+      </section>
 
-        {meal.skipping.length > 0 && (
-          <div className="reasons">
-            {meal.skipping.map((entry) => (
-              <div key={entry.name} className="reason-row">
-                <span className="reason-name">{entry.name}</span>
-                <div className="reason-chips">
-                  {SKIP_REASONS.map((reason) => (
-                    <button
-                      key={reason}
-                      className="reason-chip"
-                      data-on={entry.reason === reason}
-                      onClick={() =>
-                        void send(
-                          { type: "skipReason", target: entry.name, reason },
-                          (c) => {
-                            const found = c[view.meal].skipping.find((s) => s.name === entry.name);
-                            if (found) found.reason = reason;
-                          },
-                        )
-                      }
-                    >
-                      {reason}
-                    </button>
-                  ))}
-                </div>
-              </div>
+      {pendingSkip && (
+        <div className="modal-backdrop" onClick={() => commitSkip(pendingSkip)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3 className="modal-title">Why is {pendingSkip} out?</h3>
+            {SKIP_REASONS.map((reason) => (
+              <button
+                key={reason}
+                className="modal-option"
+                onClick={() => commitSkip(pendingSkip, reason)}
+              >
+                {reason}
+              </button>
             ))}
           </div>
-        )}
-      </section>
+        </div>
+      )}
 
       {error && <div className="toast">{error}</div>}
 
