@@ -239,39 +239,52 @@ export default function Page() {
               }`}
         </div>
 
-        {decided && (
-          <div className="verdict-actions">
-            {meal.locked ? (
+        <div className="verdict-actions">
+          {decided && (
+            <>
+              {meal.locked ? (
+                <button
+                  className="verdict-btn"
+                  onClick={() => void send({ type: "unlock" }, (c) => {
+                    c[view.meal].locked = null;
+                  })}
+                >
+                  Reopen
+                </button>
+              ) : (
+                <button
+                  className="verdict-btn"
+                  data-primary="true"
+                  onClick={() => void send({ type: "lock", dish: decided }, (c) => {
+                    c[view.meal].locked = decided;
+                  })}
+                >
+                  Lock it in
+                </button>
+              )}
               <button
                 className="verdict-btn"
-                onClick={() => void send({ type: "unlock" }, (c) => {
-                  c[view.meal].locked = null;
-                })}
+                onClick={() => {
+                  const text = `${MEAL_LABEL[view.meal]}: ${decided} · cooking for ${headcount}`;
+                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+                }}
               >
-                Reopen
+                Tell everyone
               </button>
-            ) : (
-              <button
-                className="verdict-btn"
-                data-primary="true"
-                onClick={() => void send({ type: "lock", dish: decided }, (c) => {
-                  c[view.meal].locked = decided;
-                })}
-              >
-                Lock it in
-              </button>
-            )}
+            </>
+          )}
+          {!meal.locked && (
             <button
               className="verdict-btn"
               onClick={() => {
-                const text = `${MEAL_LABEL[view.meal]}: ${decided} · cooking for ${headcount}`;
+                const text = `⏰ ${MEAL_LABEL[view.meal]} · ${humanDate(date)} — add what you're in the mood for, or mark yourself out if you're skipping. Nothing added in time, and it's the meal maker's call.`;
                 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
               }}
             >
-              Tell everyone
+              Remind everyone
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </section>
 
       <nav className="tabs">
@@ -319,7 +332,7 @@ export default function Page() {
       )}
 
       <section className="eating">
-        <h2 className="eating-title">Eating at home</h2>
+        <h2 className="eating-title">Eating at home (tap a name to opt out)</h2>
         <div className="people">
           {FAMILY.map((name) => {
             const out = meal.skipping.includes(name);
@@ -342,7 +355,6 @@ export default function Page() {
             );
           })}
         </div>
-        <p className="stale">Tap a name to mark them out for this meal.</p>
       </section>
 
       {error && <div className="toast">{error}</div>}

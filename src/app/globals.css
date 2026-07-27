@@ -21,6 +21,13 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+ul,
+li {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
 html,
 body {
   margin: 0;
@@ -138,11 +145,15 @@ button {
 }
 
 .whoami {
-  min-height: 38px;
-  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
   border-radius: 999px;
+  background: var(--card);
   border: 1px solid var(--line);
   font-size: 15px;
+  font-weight: 500;
   color: var(--ink-soft);
 }
 
@@ -446,13 +457,6 @@ button {
   padding: 12px 16px;
   font-size: 15px;
   text-align: center;
-}
-
-.stale {
-  text-align: center;
-  color: var(--ink-soft);
-  font-size: 13px;
-  padding: 16px 0 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
