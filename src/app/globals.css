@@ -66,7 +66,7 @@ button {
   max-width: var(--shell);
   margin: 0 auto;
   min-height: 100dvh;
-  padding: 0 16px calc(120px + env(safe-area-inset-bottom));
+  padding: 0 16px calc(var(--composer-h, 120px) + 16px + env(safe-area-inset-bottom));
 }
 
 /* ---------- who are you ---------- */
@@ -341,17 +341,25 @@ button {
 
 .people {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.people::-webkit-scrollbar {
+  display: none;
 }
 
 .person {
+  flex: 0 0 auto;
   min-height: 44px;
   padding: 0 16px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--card);
   font-size: 16px;
+  white-space: nowrap;
 }
 
 .person[data-out="true"] {

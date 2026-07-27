@@ -40,6 +40,7 @@ export default function Page() {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
   const lastTouch = useRef(Date.now());
+  const composerRef = useRef<HTMLDivElement>(null);
 
   const date = istDateKey(view.offset);
   const meal = day[view.meal];
@@ -138,6 +139,19 @@ export default function Page() {
     const timer = window.setTimeout(() => setError(null), 3500);
     return () => window.clearTimeout(timer);
   }, [error]);
+
+  // The composer's height changes with its content (extra chip rows, errors).
+  // The fixed bar would otherwise overlap whatever sits at the bottom of the
+  // scrollable content, swallowing taps on it.
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    const set = () => document.documentElement.style.setProperty("--composer-h", `${el.offsetHeight}px`);
+    set();
+    const observer = new ResizeObserver(set);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [who]);
 
   const leader = useMemo(() => winnerOf(meal), [meal]);
   const decided = meal.locked ?? leader?.dish ?? null;
@@ -359,7 +373,7 @@ export default function Page() {
 
       {error && <div className="toast">{error}</div>}
 
-      <div className="composer">
+      <div className="composer" ref={composerRef}>
         <div className="composer-inner">
           {pastWinners.length > 0 && (
             <>
