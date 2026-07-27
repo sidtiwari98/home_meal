@@ -3,7 +3,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FAMILY, Person } from "@/lib/family";
 import { humanDate, istDateKey, istHour } from "@/lib/date";
-import { Day, MEALS, MealName, Suggestion, decidedLabel, emptyDay, normalizeDay, winnersOf } from "@/lib/types";
+import {
+  Day,
+  MEALS,
+  MealName,
+  SKIP_REASONS,
+  SkipReason,
+  Suggestion,
+  decidedLabel,
+  emptyDay,
+  normalizeDay,
+  winnersOf,
+} from "@/lib/types";
 
 const STORAGE_KEY = "kitchen.who";
 const POLL_MS = 15_000;
@@ -19,6 +30,11 @@ const MEAL_LABEL: Record<MealName, string> = {
  * At 10 PM nobody is voting on today's dinner any more — they're deciding
  * tomorrow's breakfast. Open on whatever the family is most likely there for.
  */
+/** "Skipping" is the default reason and reads as noise once you already see "out". */
+function skipLabel(s: { name: string; reason: SkipReason }): string {
+  return s.reason === "Skipping" ? s.name : `${s.name} (${s.reason})`;
+}
+
 function defaultView(): { offset: 0 | 1; meal: MealName } {
   const hour = istHour();
   if (hour >= 21) return { offset: 1, meal: "breakfast" };
@@ -249,7 +265,7 @@ export default function Page() {
           {headcount === 0
             ? "Nobody eating at home"
             : `Cooking for ${headcount}${
-                meal.skipping.length ? ` · ${meal.skipping.join(", ")} out` : ""
+                meal.skipping.length ? ` · ${meal.skipping.map(skipLabel).join(", ")} out` : ""
               }`}
         </div>
 
@@ -279,7 +295,10 @@ export default function Page() {
               <button
                 className="verdict-btn"
                 onClick={() => {
-                  const text = `${MEAL_LABEL[view.meal]}: ${decided} · cooking for ${headcount}`;
+                  const out = meal.skipping.length
+                    ? ` · ${meal.skipping.map(skipLabel).join(", ")} out`
+                    : "";
+                  const text = `${MEAL_LABEL[view.meal]}: ${decided} · cooking for ${headcount}${out}\n${window.location.origin}`;
                   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
                 }}
               >
@@ -291,7 +310,7 @@ export default function Page() {
             <button
               className="verdict-btn"
               onClick={() => {
-                const text = `⏰ ${MEAL_LABEL[view.meal]} · ${humanDate(date)} — add what you're in the mood for, or mark yourself out if you're skipping. Nothing added in time, and it's the meal maker's call.`;
+                const text = `⏰ ${MEAL_LABEL[view.meal]} · ${humanDate(date)} — add what you're in the mood for, or mark yourself out if you're skipping. Nothing added in time, and it's the meal maker's call.\n${window.location.origin}`;
                 window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
               }}
             >
@@ -349,7 +368,7 @@ export default function Page() {
         <h2 className="eating-title">Eating at home (tap a name to opt out)</h2>
         <div className="people">
           {FAMILY.map((name) => {
-            const out = meal.skipping.includes(name);
+            const out = meal.skipping.some((s) => s.name === name);
             return (
               <button
                 key={name}
@@ -358,8 +377,8 @@ export default function Page() {
                 onClick={() =>
                   void send({ type: "skip", target: name }, (c) => {
                     const list = c[view.meal].skipping;
-                    const at = list.indexOf(name);
-                    if (at === -1) list.push(name);
+                    const at = list.findIndex((s) => s.name === name);
+                    if (at === -1) list.push({ name, reason: "Skipping" });
                     else list.splice(at, 1);
                   })
                 }
@@ -369,6 +388,36 @@ export default function Page() {
             );
           })}
         </div>
+
+        {meal.skipping.length > 0 && (
+          <div className="reasons">
+            {meal.skipping.map((entry) => (
+              <div key={entry.name} className="reason-row">
+                <span className="reason-name">{entry.name}</span>
+                <div className="reason-chips">
+                  {SKIP_REASONS.map((reason) => (
+                    <button
+                      key={reason}
+                      className="reason-chip"
+                      data-on={entry.reason === reason}
+                      onClick={() =>
+                        void send(
+                          { type: "skipReason", target: entry.name, reason },
+                          (c) => {
+                            const found = c[view.meal].skipping.find((s) => s.name === entry.name);
+                            if (found) found.reason = reason;
+                          },
+                        )
+                      }
+                    >
+                      {reason}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {error && <div className="toast">{error}</div>}

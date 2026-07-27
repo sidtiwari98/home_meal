@@ -369,6 +369,54 @@ button {
   text-decoration: line-through;
 }
 
+.reasons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.reason-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reason-name {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.reason-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.reason-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.reason-chip {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink-soft);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.reason-chip[data-on="true"] {
+  background: var(--haldi-wash);
+  border-color: var(--haldi);
+  color: var(--haldi-deep);
+  font-weight: 500;
+}
+
 /* ---------- composer ---------- */
 
 .composer {

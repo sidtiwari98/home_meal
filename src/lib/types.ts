@@ -14,10 +14,23 @@ export interface Suggestion {
   at: number;
 }
 
+/** Why someone marked out isn't eating at home — never blank, defaults to "Skipping". */
+export const SKIP_REASONS = ["Skipping", "Own meal", "Ordering", "Eating out"] as const;
+export type SkipReason = (typeof SKIP_REASONS)[number];
+
+export function isSkipReason(value: unknown): value is SkipReason {
+  return typeof value === "string" && (SKIP_REASONS as readonly string[]).includes(value);
+}
+
+export interface Skip {
+  name: string;
+  reason: SkipReason;
+}
+
 export interface Meal {
   suggestions: Suggestion[];
-  /** Names of people not eating this meal at home. */
-  skipping: string[];
+  /** People not eating this meal at home, and why. */
+  skipping: Skip[];
   /** Set once someone decides. Overrides the vote count. */
   locked: string | null;
 }
@@ -32,6 +45,17 @@ export function emptyDay(): Day {
   return { breakfast: emptyMeal(), lunch: emptyMeal(), dinner: emptyMeal() };
 }
 
+/** Old data was just a name; new data is { name, reason }. Reason is never blank. */
+function normalizeSkip(raw: unknown): Skip | null {
+  if (typeof raw === "string") return { name: raw, reason: "Skipping" };
+  if (raw && typeof raw === "object" && "name" in raw) {
+    const { name, reason } = raw as { name: unknown; reason: unknown };
+    if (typeof name !== "string") return null;
+    return { name, reason: isSkipReason(reason) ? reason : "Skipping" };
+  }
+  return null;
+}
+
 /** Redis gives back whatever we last wrote. Repair anything missing so the UI never crashes. */
 export function normalizeDay(raw: unknown): Day {
   const source = (raw ?? {}) as Partial<Record<MealName, Partial<Meal>>>;
@@ -43,7 +67,9 @@ export function normalizeDay(raw: unknown): Day {
       suggestions: Array.isArray(incoming.suggestions)
         ? incoming.suggestions.filter((s): s is Suggestion => !!s && typeof s.dish === "string")
         : [],
-      skipping: Array.isArray(incoming.skipping) ? incoming.skipping : [],
+      skipping: Array.isArray(incoming.skipping)
+        ? incoming.skipping.map(normalizeSkip).filter((s): s is Skip => !!s)
+        : [],
       locked: typeof incoming.locked === "string" ? incoming.locked : null,
     };
   }

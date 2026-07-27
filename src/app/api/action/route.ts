@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { isAllowedDateKey } from "@/lib/date";
 import { isPerson } from "@/lib/family";
 import { mutateDay, recordFinalized } from "@/lib/store";
-import { Day, MealName, isMealName } from "@/lib/types";
+import { Day, MealName, SkipReason, isMealName, isSkipReason } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +14,7 @@ type Action =
   | { type: "vote"; id: string }
   | { type: "remove"; id: string }
   | { type: "skip"; target: string }
+  | { type: "skipReason"; target: string; reason: SkipReason }
   | { type: "lock"; dish: string }
   | { type: "unlock" };
 
@@ -53,6 +54,9 @@ function parseAction(body: Record<string, unknown>, who: string): Action | null 
   if (type === "remove" && id) return { type: "remove", id };
   // Anyone can mark anyone out — in practice one person updates for the whole house.
   if (type === "skip") return { type: "skip", target: isPerson(body.target) ? body.target : who };
+  if (type === "skipReason" && isPerson(body.target) && isSkipReason(body.reason)) {
+    return { type: "skipReason", target: body.target, reason: body.reason };
+  }
   if (type === "lock" && dish) return { type: "lock", dish };
   if (type === "unlock") return { type: "unlock" };
   return null;
@@ -100,9 +104,15 @@ function apply(day: Day, mealName: MealName, who: string, action: Action): void 
     }
 
     case "skip": {
-      const at = meal.skipping.indexOf(action.target);
-      if (at === -1) meal.skipping.push(action.target);
+      const at = meal.skipping.findIndex((s) => s.name === action.target);
+      if (at === -1) meal.skipping.push({ name: action.target, reason: "Skipping" });
       else meal.skipping.splice(at, 1);
+      return;
+    }
+
+    case "skipReason": {
+      const entry = meal.skipping.find((s) => s.name === action.target);
+      if (entry) entry.reason = action.reason;
       return;
     }
 
