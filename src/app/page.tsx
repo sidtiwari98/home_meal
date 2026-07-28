@@ -30,9 +30,8 @@ const MEAL_LABEL: Record<MealName, string> = {
  * At 10 PM nobody is voting on today's dinner any more — they're deciding
  * tomorrow's breakfast. Open on whatever the family is most likely there for.
  */
-/** "Skipping" is the default reason and reads as noise once you already see "out". */
 function skipLabel(s: { name: string; reason: SkipReason }): string {
-  return s.reason === "Skipping" ? s.name : `${s.name} (${s.reason})`;
+  return `${s.name} (${s.reason})`;
 }
 
 function defaultView(): { offset: 0 | 1; meal: MealName } {
@@ -213,11 +212,13 @@ export default function Page() {
     });
   }
 
-  function commitSkip(name: string, reason: SkipReason = "Skipping") {
+  function commitSkip(name: string, reason: SkipReason) {
     setPendingSkip(null);
     void send({ type: "skip", target: name, reason }, (c) => {
       const list = c[view.meal].skipping;
-      if (!list.some((s) => s.name === name)) list.push({ name, reason });
+      const existing = list.find((s) => s.name === name);
+      if (existing) existing.reason = reason;
+      else list.push({ name, reason });
     });
   }
 
@@ -385,7 +386,7 @@ export default function Page() {
                 data-out={out}
                 onClick={() => {
                   if (out) {
-                    void send({ type: "skip", target: name, reason: "Skipping" }, (c) => {
+                    void send({ type: "unskip", target: name }, (c) => {
                       c[view.meal].skipping = c[view.meal].skipping.filter((s) => s.name !== name);
                     });
                   } else {
@@ -401,7 +402,7 @@ export default function Page() {
       </section>
 
       {pendingSkip && (
-        <div className="modal-backdrop" onClick={() => commitSkip(pendingSkip)}>
+        <div className="modal-backdrop" onClick={() => setPendingSkip(null)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <h3 className="modal-title">Why is {pendingSkip} out?</h3>
             {SKIP_REASONS.map((reason) => (

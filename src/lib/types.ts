@@ -15,7 +15,7 @@ export interface Suggestion {
 }
 
 /** Why someone marked out isn't eating at home — never blank, defaults to "Skipping". */
-export const SKIP_REASONS = ["Skipping", "Own meal", "Ordering", "Eating out"] as const;
+export const SKIP_REASONS = ["Skipping", "Own meal", "Ordering", "Eating out", "Office"] as const;
 export type SkipReason = (typeof SKIP_REASONS)[number];
 
 export function isSkipReason(value: unknown): value is SkipReason {

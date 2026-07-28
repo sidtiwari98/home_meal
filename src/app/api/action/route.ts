@@ -14,6 +14,7 @@ type Action =
   | { type: "vote"; id: string }
   | { type: "remove"; id: string }
   | { type: "skip"; target: string; reason: SkipReason }
+  | { type: "unskip"; target: string }
   | { type: "lock"; dish: string }
   | { type: "unlock" };
 
@@ -58,6 +59,9 @@ function parseAction(body: Record<string, unknown>, who: string): Action | null 
       target: isPerson(body.target) ? body.target : who,
       reason: isSkipReason(body.reason) ? body.reason : "Skipping",
     };
+  }
+  if (type === "unskip") {
+    return { type: "unskip", target: isPerson(body.target) ? body.target : who };
   }
   if (type === "lock" && dish) return { type: "lock", dish };
   if (type === "unlock") return { type: "unlock" };
@@ -106,9 +110,14 @@ function apply(day: Day, mealName: MealName, who: string, action: Action): void 
     }
 
     case "skip": {
-      const at = meal.skipping.findIndex((s) => s.name === action.target);
-      if (at === -1) meal.skipping.push({ name: action.target, reason: action.reason });
-      else meal.skipping.splice(at, 1);
+      const existing = meal.skipping.find((s) => s.name === action.target);
+      if (existing) existing.reason = action.reason;
+      else meal.skipping.push({ name: action.target, reason: action.reason });
+      return;
+    }
+
+    case "unskip": {
+      meal.skipping = meal.skipping.filter((s) => s.name !== action.target);
       return;
     }
 
